@@ -15,6 +15,10 @@ public class Shooter : MonoBehaviour
 	public float rotationSpeed;
 	public float horizontalSpeed;
 	public float verticalSpeed;
+	public float topXAngle = 315;   // 360 - 315 = 45 degrees up
+	public float bottomXAngle = 15;   // 15 degrees down
+	public float minYAngle = 315;	// 360 - 45 = 45 degrees left
+	public float maxYAngle = 45;	// 45 degrees right
 	public GameObject globalPivot;
 	public GameObject localPivot;
 	[Header("Mouse Aiming")]
@@ -24,6 +28,7 @@ public class Shooter : MonoBehaviour
 	public new Camera camera;
 
 	private bool canMoveOrShoot = true;
+	private float rotationBuffer = 10f;
 
 	private void Update()
 	{
@@ -32,17 +37,31 @@ public class Shooter : MonoBehaviour
 
 	private void GetPlayerInput()
 	{
+		print(localPivot.transform.rotation.eulerAngles);
+
 		if (!canMoveOrShoot) return;
+		// Cannon rotation around the center
 		if (Input.GetKeyDown(KeyCode.RightArrow)) StartCoroutine(Rotate(-rotationIncrement));
 		if (Input.GetKeyDown(KeyCode.LeftArrow)) StartCoroutine(Rotate(rotationIncrement));
-		if (Input.GetKey(KeyCode.A)) localPivot.transform.Rotate(0, -verticalSpeed, 0, Space.World);
-		if (Input.GetKey(KeyCode.D)) localPivot.transform.Rotate(0, verticalSpeed, 0, Space.World);
-		if (Input.GetKey(KeyCode.W)) localPivot.transform.Rotate(-horizontalSpeed, 0, 0, Space.Self);
-		if (Input.GetKey(KeyCode.S)) localPivot.transform.Rotate(horizontalSpeed, 0, 0, Space.Self);
-		if (Input.GetKeyDown(KeyCode.Space)) Shoot();
+
+		// Cannon aiming
+		if (Input.GetKey(KeyCode.A) &&
+			(localPivot.transform.rotation.eulerAngles.y > minYAngle || localPivot.transform.rotation.eulerAngles.y < maxYAngle + rotationBuffer))
+		{ localPivot.transform.Rotate(0, -verticalSpeed, 0, Space.World); }
+		if (Input.GetKey(KeyCode.D)
+			&& (localPivot.transform.rotation.eulerAngles.y > minYAngle - rotationBuffer || localPivot.transform.rotation.eulerAngles.y < maxYAngle))
+		{ localPivot.transform.Rotate(0, verticalSpeed, 0, Space.World); }
+		if (Input.GetKey(KeyCode.W)
+			&& (localPivot.transform.rotation.eulerAngles.x > topXAngle || localPivot.transform.rotation.eulerAngles.x < bottomXAngle + rotationBuffer))
+		{ localPivot.transform.Rotate(-horizontalSpeed, 0, 0, Space.Self); }
+		if (Input.GetKey(KeyCode.S)
+			&& (localPivot.transform.rotation.eulerAngles.x < bottomXAngle || localPivot.transform.rotation.eulerAngles.x > topXAngle - rotationBuffer))
+		{ localPivot.transform.Rotate(horizontalSpeed, 0, 0, Space.Self); }
+
+		// Mouse aiming
 		if (Input.GetKey(KeyCode.Mouse0))
 		{
-			print(Input.mousePosition);
+			//print(Input.mousePosition);
 			Ray ray = camera.ScreenPointToRay(Input.mousePosition);
 			if (Physics.Raycast(ray, out RaycastHit hit, 100, aimTarget))
 			{
@@ -50,6 +69,9 @@ public class Shooter : MonoBehaviour
 				localPivot.transform.LookAt(hit.point);
 			}
 		}
+
+		// Shoot
+		if (Input.GetKeyDown(KeyCode.Space)) Shoot();
 	}
 
 	public void Shoot()
