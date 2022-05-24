@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Cinemachine;
-
+using TMPro;
 
 public class Shooter : MonoBehaviour
 {
@@ -10,25 +10,29 @@ public class Shooter : MonoBehaviour
 	public GameObject projectile;
 	public Transform spawnLocation;
 	public float power;
+	public float maxPower;
 	[Header("Rotation")]
 	public float rotationIncrement;
 	public float rotationSpeed;
 	public float horizontalSpeed;
 	public float verticalSpeed;
 	public float topXAngle = 315;   // 360 - 315 = 45 degrees up
-	public float bottomXAngle = 15;   // 15 degrees down
-	public float minYAngle = 315;	// 360 - 45 = 45 degrees left
-	public float maxYAngle = 45;	// 45 degrees right
+	public float bottomXAngle = 15; // 15 degrees down
+	public float minYAngle = 315;   // 360 - 315 = 45 degrees left
+	public float maxYAngle = 45;    // 45 degrees right
 	public GameObject globalPivot;
 	public GameObject localPivot;
 	[Header("Mouse Aiming")]
 	public LayerMask aimTarget;
 	public GameObject target;
-	[Header("Cameras")]
+	[Space]
 	public new Camera camera;
+	public TMP_Text powerDisplay;
 
 	private bool canMoveOrShoot = true;
 	private float rotationBuffer = 10f;
+	private float powerChangeSpeed = 3;
+	private float powerChangeTime;
 
 	private void Update()
 	{
@@ -37,7 +41,7 @@ public class Shooter : MonoBehaviour
 
 	private void GetPlayerInput()
 	{
-		print(localPivot.transform.rotation.eulerAngles);
+		//print(localPivot.transform.rotation.eulerAngles);
 
 		if (!canMoveOrShoot) return;
 		// Cannon rotation around the center
@@ -46,16 +50,16 @@ public class Shooter : MonoBehaviour
 
 		// Cannon aiming
 		if (Input.GetKey(KeyCode.A) &&
-			(localPivot.transform.rotation.eulerAngles.y > minYAngle || localPivot.transform.rotation.eulerAngles.y < maxYAngle + rotationBuffer))
+			(localPivot.transform.localRotation.eulerAngles.y > minYAngle || localPivot.transform.localRotation.eulerAngles.y < maxYAngle + rotationBuffer))
 		{ localPivot.transform.Rotate(0, -verticalSpeed, 0, Space.World); }
 		if (Input.GetKey(KeyCode.D)
-			&& (localPivot.transform.rotation.eulerAngles.y > minYAngle - rotationBuffer || localPivot.transform.rotation.eulerAngles.y < maxYAngle))
+			&& (localPivot.transform.localRotation.eulerAngles.y > minYAngle - rotationBuffer || localPivot.transform.localRotation.eulerAngles.y < maxYAngle))
 		{ localPivot.transform.Rotate(0, verticalSpeed, 0, Space.World); }
 		if (Input.GetKey(KeyCode.W)
-			&& (localPivot.transform.rotation.eulerAngles.x > topXAngle || localPivot.transform.rotation.eulerAngles.x < bottomXAngle + rotationBuffer))
+			&& (localPivot.transform.localRotation.eulerAngles.x > topXAngle || localPivot.transform.localRotation.eulerAngles.x < bottomXAngle + rotationBuffer))
 		{ localPivot.transform.Rotate(-horizontalSpeed, 0, 0, Space.Self); }
 		if (Input.GetKey(KeyCode.S)
-			&& (localPivot.transform.rotation.eulerAngles.x < bottomXAngle || localPivot.transform.rotation.eulerAngles.x > topXAngle - rotationBuffer))
+			&& (localPivot.transform.localRotation.eulerAngles.x < bottomXAngle || localPivot.transform.localRotation.eulerAngles.x > topXAngle - rotationBuffer))
 		{ localPivot.transform.Rotate(horizontalSpeed, 0, 0, Space.Self); }
 
 		// Mouse aiming
@@ -69,6 +73,37 @@ public class Shooter : MonoBehaviour
 				localPivot.transform.LookAt(hit.point);
 			}
 		}
+
+		powerChangeTime += Time.deltaTime;
+		// Power
+		if (Input.GetKeyDown(KeyCode.UpArrow))
+		{
+			power = Mathf.Min(power + 1, maxPower);
+			powerChangeTime = 1;
+		}
+		else if (Input.GetKey(KeyCode.UpArrow))
+		{
+			power = Mathf.Min(power + powerChangeTime * powerChangeSpeed * Time.deltaTime, maxPower);
+		}
+		else if (Input.GetKeyUp(KeyCode.UpArrow))
+		{
+			power = Mathf.Round(power);
+		}
+		if (Input.GetKeyDown(KeyCode.DownArrow))
+		{
+			power = Mathf.Max(power - 1, 1);
+			powerChangeTime = 1;
+		}
+		else if (Input.GetKey(KeyCode.DownArrow))
+		{
+			power = Mathf.Max(power - powerChangeTime * powerChangeSpeed * Time.deltaTime, 1);
+		}
+		else if (Input.GetKeyUp(KeyCode.DownArrow))
+		{
+			power = Mathf.Round(power);
+		}
+
+		powerDisplay.text = power.ToString("#");
 
 		// Shoot
 		if (Input.GetKeyDown(KeyCode.Space)) Shoot();
@@ -100,8 +135,18 @@ public class Shooter : MonoBehaviour
 		while (n < 1)
 		{
 			globalPivot.transform.rotation = Quaternion.Slerp(startRotation, endRotation, n += rotationSpeed);
-			yield return new WaitForSeconds(0.02f);
+			yield return new WaitForFixedUpdate();
 		}
 		canMoveOrShoot = true;
+	}
+
+	public void RotateRight()
+	{
+		StartCoroutine(Rotate(-rotationIncrement));
+	}
+
+	public void RotateLeft()
+	{
+		StartCoroutine(Rotate(rotationIncrement));
 	}
 }

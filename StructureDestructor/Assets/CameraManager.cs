@@ -19,8 +19,10 @@ public class CameraManager : MonoBehaviour
 		if (Input.GetKeyDown(KeyCode.Tab))
 		{
 			cams[camIndex].Priority = 0;
+			cams[camIndex].GetComponentInChildren<AimClickTarget>()?.gameObject.SetActive(false);
 			camIndex = (camIndex + 1) % cams.Length;
 			cams[camIndex].Priority = 100;
+			cams[camIndex].GetComponentInChildren<AimClickTarget>()?.gameObject.SetActive(true);
 		}
 	}
 }
