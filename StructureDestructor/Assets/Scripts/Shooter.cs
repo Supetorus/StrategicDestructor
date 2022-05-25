@@ -22,6 +22,7 @@ public class Shooter : MonoBehaviour
 	public float maxYAngle = 45;    // 45 degrees right
 	public GameObject globalPivot;
 	public GameObject localPivot;
+	[SerializeField] private Projection _projection;
 	[Header("Mouse Aiming")]
 	public LayerMask aimTarget;
 	public GameObject target;
@@ -34,9 +35,15 @@ public class Shooter : MonoBehaviour
 	private float powerChangeSpeed = 3;
 	private float powerChangeTime;
 
+	private void Start()
+	{
+		_projection.CreatePhysicsScene(projectile);
+	}
+
 	private void Update()
 	{
 		GetPlayerInput();
+		_projection.SimulateTrajectory(spawnLocation, spawnLocation.forward * power);
 	}
 
 	private void GetPlayerInput()
